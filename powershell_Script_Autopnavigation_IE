@@ -1,0 +1,45 @@
+
+#	Ausführen des Scripts mit Windows Power Shell
+
+#	Init:
+$ie = New-Object -ComObject InternetExplorer.Application
+
+
+#		Authentication-Gateway:
+$ie.Navigate2("https://login.kpt.ch")
+$ie.Navigate2("https://login.ohcp.ch",0x1000)
+$ie.Navigate2("https://login.onsurance.ch",0x1000)
+$ie.Navigate2("https://login.vitaclic.ch",0x1000)
+$ie.Navigate2("https://sts.ohcp.ch",0x1000)
+
+#		Kundendossier und Kudo-Berater:
+$ie.Navigate2("https://kptnet.kpt.ch",0x1000)
+
+#		HCP Verwaltung:
+$ie.Navigate2("https://admin-onsurance.ohcp.ch",0x1000)
+
+#		Kudo Verwaltung:
+$ie.Navigate2("https://verwaltung.ohcp.ch",0x1000)
+
+#		Reiseversicherung:
+$ie.Navigate2("http://reiseversicherung.kpt.ch",0x1000)
+
+#		Offertanfrage:
+$ie.Navigate2("https://offer2.kpt.ch",0x1000)
+
+#		Kollektivvertrag mit Swisscom:
+$ie.Navigate2("https://kollektiv.kpt.ch/swisscom",0x1000)
+
+#		Teaser (Einstiegsseiten):
+$ie.Navigate2("https://teaser-kpt-prd.ohcp.ch",0x1000)
+
+#		Teaser (Einstiegsseiten):
+$ie.Navigate2("https://kpt.ch",0x1000)
+
+#		Teaser (Einstiegsseiten):
+$ie.Navigate2("http://vitaclic.ch",0x1000)
+
+#		Teaser (Einstiegsseiten):
+$ie.Navigate2("http://oleag.ch",0x1000)
+
+$ie.Visible = $true
