@@ -1,0 +1,116 @@
+
+# C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -command ". Path2Script\click_move.ps1; exit $LASTEXITCODE"
+
+$Date = Get-Date
+$ComputerName = Hostname
+$Date2Str = $Date.AddDays(-1)
+$DestPath = "\\tsclient\X\ALL-TRANS\_AM_ClickSoft" + "\"  + $ComputerName
+$SourcePath = "D:\temp\IntegrationLog"
+$SourceFiles = gci $SourcePath
+$LogSource = "swisscom.am.clicksoft"
+$FoundFiles2Copy = $false
+
+<#
+# Create log source for first eventlog call
+try {
+    New-EventLog -LogName Application -Source $LogSource -ErrorAction Stop
+} catch [System.InvalidOperationException] {
+    Write-host $_
+}
+#>
+
+# create destination directory
+if(!(test-path ($DestPath))){
+    try{
+        new-item $DestPath -itemtype directory
+        Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message ($DestPath + " created.")
+    }catch{
+        Write-EventLog –LogName Application –Source $LogSource –EntryType Error –EventID 1 -Message (Exception: $_) 
+    }
+}
+
+function copyEx([string] $SourcePath, [string] $DestPath){
+    $CopySuccess = $true
+
+    # do copy
+    Copy-Item $SourcePath $DestPath -force -errorAction SilentlyContinue -errorVariable errors
+    
+
+    # exception handling
+    foreach($e in $errors)
+    {
+        if ($e.Exception -ne $null)
+        {
+            Write-EventLog –LogName Application –Source $LogSource –EntryType Error –EventID 1 –Message "Exception: $($e.Exception)"
+        }
+        $CopySuccess = $false
+    }
+
+    if($CopySuccess){
+        Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message (“Copy file '$SourcePath' to '$DestPath' successful.")
+    }
+
+    return $CopySuccess
+}
+
+function deleteEx([string] $SourcePath){
+    $DeleteSuccess = $true
+
+    # do delete
+    Remove-Item $SourcePath -ErrorAction SilentlyContinue -ErrorVariable errors
+
+    # exception handling
+    foreach($e in $errors)
+    {
+        if ($e.Exception -ne $null)
+        {
+            Write-EventLog –LogName Application –Source $LogSource –EntryType Error –EventID 1 –Message "Exception: $($e.Exception)"
+        }
+        $DeleteSuccess = $false
+    }
+
+    if($DeleteSuccess){
+        Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message (“Delete file '$SourcePath' successful.")
+    }
+
+    return $DeleteSuccess
+}
+
+# are there some files in the source directory
+if (!$SourceFiles) {
+    # No file in source directory found
+    Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message "No File(s) in source directory '$SourcePath'."
+}else{
+    $DeleteSuccess = $true
+    # 
+    ForEach ($File in $SourceFiles){
+        $FileDate = $File.creationtime
+        $CTDate2Str = $FileDate
+
+        # copy only files from yesterday
+        if ($CTDate2Str -le $Date2Str) {
+            $FoundFiles2Copy = $true
+
+            if((copyEx -SourcePath $File.Fullname -DestPath $DestPath)){
+                $DeleteSuccess = (deleteEx -SourcePath $File.Fullname)
+            }
+
+            # log if file already exist
+            if ((test-path ($DestPath + "\" + $File))){
+                Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message ("File '$File' allready exist in destination '" + $DestPath + "'")
+            }
+        }
+    }
+
+    # No files to copy found
+    if(! ($FoundFiles2Copy)){
+        Write-EventLog –LogName Application –Source $LogSource –EntryType Information –EventID 1 –Message "No new files to copy found."
+    }
+
+    # Exit code for scheduled task
+    if($DeleteSuccess){
+        exit 0
+    }else{
+        exit 1
+    }    
+}
